@@ -1,0 +1,35 @@
+name: Gunluk veri
+
+on:
+  schedule:
+    - cron: "40 21 * * 1-5"   # 21:40 UTC, hafta ici: ABD kapanisindan sonra
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: veri
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Veriyi cek
+        env:
+          FINNHUB_KEY: ${{ secrets.FINNHUB_KEY }}
+        run: python fetch.py
+      - name: Depoya yaz
+        if: always()
+        run: |
+          git config user.name "hisse-veri-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A data
+          git diff --cached --quiet || git commit -m "veri $(date -u +%F)"
+          git push
